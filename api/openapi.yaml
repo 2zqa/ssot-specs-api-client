@@ -1,0 +1,1715 @@
+openapi: 3.0.3
+info:
+  description: This page describes the api endpoints for single source of truth infra
+    project
+  title: SSOT API
+  version: 0.1.0
+servers:
+- description: Development server
+  url: http://localhost:4000/v1
+tags:
+- description: Everything about the devices
+  name: devices
+- description: Information about the API that's powering it all
+  name: server
+paths:
+  /healthcheck:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfo'
+          description: OK
+      summary: Check the health of the API
+      tags:
+      - server
+  /devices:
+    get:
+      parameters:
+      - description: Search query
+        explode: true
+        in: query
+        name: q
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Page number
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          maximum: 10000000
+          minimum: 1
+          type: integer
+        style: form
+      - description: Page size
+        explode: true
+        in: query
+        name: page_size
+        required: false
+        schema:
+          default: 10
+          maximum: 100
+          minimum: 1
+          type: integer
+        style: form
+      - description: Sort by
+        explode: true
+        in: query
+        name: sort
+        required: false
+        schema:
+          enum:
+          - updated_at
+          - -updated_at
+          type: string
+        style: form
+      responses:
+        "401":
+          content:
+            application/json:
+              example:
+                error: invalid or missing authentication token
+              schema:
+                $ref: '#/components/schemas/_devices_get_401_response'
+          description: Invalid authentication token response
+          headers:
+            WWW-Authenticate:
+              explode: false
+              schema:
+                example: Bearer
+                type: string
+              style: simple
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_devices_get_200_response'
+          description: A JSON array of devices
+        "404":
+          description: No devices found
+      security:
+      - JwtAuth: []
+      summary: Get all devices
+      tags:
+      - devices
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DevicePostInput'
+        description: The device to create
+        required: true
+      responses:
+        "401":
+          content:
+            application/json:
+              example:
+                error: invalid or missing authentication token
+              schema:
+                $ref: '#/components/schemas/_devices_get_401_response'
+          description: Invalid API key response
+          headers:
+            WWW-Authenticate:
+              explode: false
+              schema:
+                example: X-API-Key
+                type: string
+              style: simple
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_devices_post_201_response'
+          description: The newly created device
+        "400":
+          description: Invalid body supplied
+      security:
+      - ApiKeyAuth: []
+      summary: Create a device
+      tags:
+      - devices
+  /devices/{uuid}:
+    delete:
+      description: Deletes a single device by uuid
+      parameters:
+      - description: UUID of device to delete
+        explode: false
+        in: path
+        name: uuid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "401":
+          content:
+            application/json:
+              example:
+                error: invalid or missing authentication token
+              schema:
+                $ref: '#/components/schemas/_devices_get_401_response'
+          description: Invalid authentication token response
+          headers:
+            WWW-Authenticate:
+              explode: false
+              schema:
+                example: Bearer
+                type: string
+              style: simple
+        "204":
+          description: Device deleted
+        "404":
+          description: Device not found
+      security:
+      - JwtAuth: []
+      summary: Delete a device by uuid
+      tags:
+      - devices
+    get:
+      description: Returns a single device
+      parameters:
+      - description: UUID of device to return
+        explode: false
+        in: path
+        name: uuid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "401":
+          content:
+            application/json:
+              example:
+                error: invalid or missing authentication token
+              schema:
+                $ref: '#/components/schemas/_devices_get_401_response'
+          description: Invalid authentication token response
+          headers:
+            WWW-Authenticate:
+              explode: false
+              schema:
+                example: Bearer
+                type: string
+              style: simple
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
+          description: A JSON object representing the device
+        "400":
+          description: Invalid UUID supplied
+        "404":
+          description: Device not found
+      security:
+      - JwtAuth: []
+      summary: Find device by uuid
+      tags:
+      - devices
+    put:
+      parameters:
+      - description: UUID of device to update or create
+        explode: false
+        in: path
+        name: uuid
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DevicePutInput'
+        description: The device to create or to update the specified device with
+        required: true
+      responses:
+        "401":
+          content:
+            application/json:
+              example:
+                error: invalid or missing authentication token
+              schema:
+                $ref: '#/components/schemas/_devices_get_401_response'
+          description: Invalid API key response
+          headers:
+            WWW-Authenticate:
+              explode: false
+              schema:
+                example: X-API-Key
+                type: string
+              style: simple
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
+          description: The updated device
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_devices_post_201_response'
+          description: The newly created device
+        "400":
+          description: Invalid body supplied
+        "500":
+          description: Invalid UUID supplied
+      security:
+      - ApiKeyAuth: []
+      summary: Update or create a device by uuid
+      tags:
+      - devices
+components:
+  responses:
+    UnauthorizedJwt:
+      content:
+        application/json:
+          example:
+            error: invalid or missing authentication token
+          schema:
+            $ref: '#/components/schemas/_devices_get_401_response'
+      description: Invalid authentication token response
+      headers:
+        WWW-Authenticate:
+          explode: false
+          schema:
+            example: Bearer
+            type: string
+          style: simple
+    UnauthorizedApiKey:
+      content:
+        application/json:
+          example:
+            error: invalid or missing authentication token
+          schema:
+            $ref: '#/components/schemas/_devices_get_401_response'
+      description: Invalid API key response
+      headers:
+        WWW-Authenticate:
+          explode: false
+          schema:
+            example: X-API-Key
+            type: string
+          style: simple
+  schemas:
+    ServerInfo:
+      example:
+        system_info:
+          environment: development
+          version: 1.0.0
+        status: available
+      properties:
+        status:
+          example: available
+          type: string
+        system_info:
+          $ref: '#/components/schemas/ServerInfo_system_info'
+      type: object
+    DevicePutInput:
+      example:
+        specs:
+          boot_time: 2023-03-07T12:04:43.070045+02:00
+          memory:
+            memory: 16577
+            swap: 2046
+            swap_devices:
+            - size: 2046
+              name: /dev/dm-2
+            - size: 2046
+              name: /dev/dm-2
+          disks:
+          - partitions:
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            name: SSDPEKKF256G8 NVMe INTEL 256GB
+            size_megabytes: 256000
+          - partitions:
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            name: SSDPEKKF256G8 NVMe INTEL 256GB
+            size_megabytes: 256000
+          virtualization:
+            type: kvm
+          bios:
+            date: 2023-05-30T00:00:00.000+00:00
+            vendor: Dell Inc.
+            version: 1.25.0
+          kernel:
+            name: linux
+            version: 5.19.0-38-generic
+          release:
+            codename: jammy
+            name: Ubuntu
+            version: "22.04"
+          oem:
+            serial_number: 000123ABCDEF
+            product_name: Precision 3530
+            manufacturer: Dell Inc.
+          motherboard:
+            vendor: Dell Inc.
+            name: 04MPXC
+            serial_number: 000123ABCDEF
+          cpu:
+            max_frequency_megahertz: 4300
+            name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+            mitigations:
+            - cpu_meltdown
+            - mds
+            - spec_store_bypass
+            core_count: 6
+            architecture: x86_64
+            cpu_count: 12
+          dimms:
+          - part_number: M471A2K43CB1-CTD
+            serial_number: 23A2DF34
+            size_gigabytes: 16
+            type: DDR4
+            locator: DIMM A
+            speed_mt_s: 2667
+            form_factor: SODIMM
+            bank_locator: Not Specified
+            manufacturer: 80CE000080CE
+          - part_number: M471A2K43CB1-CTD
+            serial_number: 23A2DF34
+            size_gigabytes: 16
+            type: DDR4
+            locator: DIMM A
+            speed_mt_s: 2667
+            form_factor: SODIMM
+            bank_locator: Not Specified
+            manufacturer: 80CE000080CE
+          network:
+            hostname: lapdooog
+            interfaces:
+            - ipv6_addresses:
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              driver:
+                name: e1000e
+                firmware_version: 0.5-4
+                version: 5.19.0-38-generic
+              mac_address: e4:b9:7a:51:c1:10
+              ipv4_addresses:
+              - 173.232.34.243
+              - 173.232.34.243
+            - ipv6_addresses:
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              driver:
+                name: e1000e
+                firmware_version: 0.5-4
+                version: 5.19.0-38-generic
+              mac_address: e4:b9:7a:51:c1:10
+              ipv4_addresses:
+              - 173.232.34.243
+              - 173.232.34.243
+      properties:
+        specs:
+          $ref: '#/components/schemas/Specs'
+      type: object
+    DevicePostInput:
+      example:
+        specs:
+          boot_time: 2023-03-07T12:04:43.070045+02:00
+          memory:
+            memory: 16577
+            swap: 2046
+            swap_devices:
+            - size: 2046
+              name: /dev/dm-2
+            - size: 2046
+              name: /dev/dm-2
+          disks:
+          - partitions:
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            name: SSDPEKKF256G8 NVMe INTEL 256GB
+            size_megabytes: 256000
+          - partitions:
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            name: SSDPEKKF256G8 NVMe INTEL 256GB
+            size_megabytes: 256000
+          virtualization:
+            type: kvm
+          bios:
+            date: 2023-05-30T00:00:00.000+00:00
+            vendor: Dell Inc.
+            version: 1.25.0
+          kernel:
+            name: linux
+            version: 5.19.0-38-generic
+          release:
+            codename: jammy
+            name: Ubuntu
+            version: "22.04"
+          oem:
+            serial_number: 000123ABCDEF
+            product_name: Precision 3530
+            manufacturer: Dell Inc.
+          motherboard:
+            vendor: Dell Inc.
+            name: 04MPXC
+            serial_number: 000123ABCDEF
+          cpu:
+            max_frequency_megahertz: 4300
+            name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+            mitigations:
+            - cpu_meltdown
+            - mds
+            - spec_store_bypass
+            core_count: 6
+            architecture: x86_64
+            cpu_count: 12
+          dimms:
+          - part_number: M471A2K43CB1-CTD
+            serial_number: 23A2DF34
+            size_gigabytes: 16
+            type: DDR4
+            locator: DIMM A
+            speed_mt_s: 2667
+            form_factor: SODIMM
+            bank_locator: Not Specified
+            manufacturer: 80CE000080CE
+          - part_number: M471A2K43CB1-CTD
+            serial_number: 23A2DF34
+            size_gigabytes: 16
+            type: DDR4
+            locator: DIMM A
+            speed_mt_s: 2667
+            form_factor: SODIMM
+            bank_locator: Not Specified
+            manufacturer: 80CE000080CE
+          network:
+            hostname: lapdooog
+            interfaces:
+            - ipv6_addresses:
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              driver:
+                name: e1000e
+                firmware_version: 0.5-4
+                version: 5.19.0-38-generic
+              mac_address: e4:b9:7a:51:c1:10
+              ipv4_addresses:
+              - 173.232.34.243
+              - 173.232.34.243
+            - ipv6_addresses:
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              driver:
+                name: e1000e
+                firmware_version: 0.5-4
+                version: 5.19.0-38-generic
+              mac_address: e4:b9:7a:51:c1:10
+              ipv4_addresses:
+              - 173.232.34.243
+              - 173.232.34.243
+        uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        uuid:
+          description: Version 4 UUID
+          format: uuid
+          type: string
+        specs:
+          $ref: '#/components/schemas/Specs'
+      type: object
+    DeviceResponse:
+      example:
+        device:
+          specs:
+            boot_time: 2023-03-07T12:04:43.070045+02:00
+            memory:
+              memory: 16577
+              swap: 2046
+              swap_devices:
+              - size: 2046
+                name: /dev/dm-2
+              - size: 2046
+                name: /dev/dm-2
+            disks:
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            virtualization:
+              type: kvm
+            bios:
+              date: 2023-05-30T00:00:00.000+00:00
+              vendor: Dell Inc.
+              version: 1.25.0
+            kernel:
+              name: linux
+              version: 5.19.0-38-generic
+            release:
+              codename: jammy
+              name: Ubuntu
+              version: "22.04"
+            oem:
+              serial_number: 000123ABCDEF
+              product_name: Precision 3530
+              manufacturer: Dell Inc.
+            motherboard:
+              vendor: Dell Inc.
+              name: 04MPXC
+              serial_number: 000123ABCDEF
+            cpu:
+              max_frequency_megahertz: 4300
+              name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+              mitigations:
+              - cpu_meltdown
+              - mds
+              - spec_store_bypass
+              core_count: 6
+              architecture: x86_64
+              cpu_count: 12
+            dimms:
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            network:
+              hostname: lapdooog
+              interfaces:
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+          updated_at: 2023-07-07T15:41:49.070045+02:00
+          uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        device:
+          $ref: '#/components/schemas/Device'
+      type: object
+    Metadata:
+      example:
+        first_page: 1
+        last_page: 3
+        total_records: 23
+        current_page: 1
+        page_size: 10
+      properties:
+        current_page:
+          description: Page number
+          example: 1
+          type: integer
+        page_size:
+          description: Page size
+          example: 10
+          type: integer
+        first_page:
+          description: First page number
+          example: 1
+          type: integer
+        last_page:
+          description: Last page number
+          example: 3
+          type: integer
+        total_records:
+          description: Total number of records
+          example: 23
+          type: integer
+      type: object
+    Device:
+      example:
+        specs:
+          boot_time: 2023-03-07T12:04:43.070045+02:00
+          memory:
+            memory: 16577
+            swap: 2046
+            swap_devices:
+            - size: 2046
+              name: /dev/dm-2
+            - size: 2046
+              name: /dev/dm-2
+          disks:
+          - partitions:
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            name: SSDPEKKF256G8 NVMe INTEL 256GB
+            size_megabytes: 256000
+          - partitions:
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            - capacity_megabytes: 536
+              source: nvme0n1p1
+              filesystem: vfat
+              target: /boot/efi
+            name: SSDPEKKF256G8 NVMe INTEL 256GB
+            size_megabytes: 256000
+          virtualization:
+            type: kvm
+          bios:
+            date: 2023-05-30T00:00:00.000+00:00
+            vendor: Dell Inc.
+            version: 1.25.0
+          kernel:
+            name: linux
+            version: 5.19.0-38-generic
+          release:
+            codename: jammy
+            name: Ubuntu
+            version: "22.04"
+          oem:
+            serial_number: 000123ABCDEF
+            product_name: Precision 3530
+            manufacturer: Dell Inc.
+          motherboard:
+            vendor: Dell Inc.
+            name: 04MPXC
+            serial_number: 000123ABCDEF
+          cpu:
+            max_frequency_megahertz: 4300
+            name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+            mitigations:
+            - cpu_meltdown
+            - mds
+            - spec_store_bypass
+            core_count: 6
+            architecture: x86_64
+            cpu_count: 12
+          dimms:
+          - part_number: M471A2K43CB1-CTD
+            serial_number: 23A2DF34
+            size_gigabytes: 16
+            type: DDR4
+            locator: DIMM A
+            speed_mt_s: 2667
+            form_factor: SODIMM
+            bank_locator: Not Specified
+            manufacturer: 80CE000080CE
+          - part_number: M471A2K43CB1-CTD
+            serial_number: 23A2DF34
+            size_gigabytes: 16
+            type: DDR4
+            locator: DIMM A
+            speed_mt_s: 2667
+            form_factor: SODIMM
+            bank_locator: Not Specified
+            manufacturer: 80CE000080CE
+          network:
+            hostname: lapdooog
+            interfaces:
+            - ipv6_addresses:
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              driver:
+                name: e1000e
+                firmware_version: 0.5-4
+                version: 5.19.0-38-generic
+              mac_address: e4:b9:7a:51:c1:10
+              ipv4_addresses:
+              - 173.232.34.243
+              - 173.232.34.243
+            - ipv6_addresses:
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+              driver:
+                name: e1000e
+                firmware_version: 0.5-4
+                version: 5.19.0-38-generic
+              mac_address: e4:b9:7a:51:c1:10
+              ipv4_addresses:
+              - 173.232.34.243
+              - 173.232.34.243
+        updated_at: 2023-07-07T15:41:49.070045+02:00
+        uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        uuid:
+          description: Version 4 UUID
+          format: uuid
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time string
+          example: 2023-07-07T15:41:49.070045+02:00
+          format: date-time
+          type: string
+        specs:
+          $ref: '#/components/schemas/Specs'
+      type: object
+    Specs:
+      example:
+        boot_time: 2023-03-07T12:04:43.070045+02:00
+        memory:
+          memory: 16577
+          swap: 2046
+          swap_devices:
+          - size: 2046
+            name: /dev/dm-2
+          - size: 2046
+            name: /dev/dm-2
+        disks:
+        - partitions:
+          - capacity_megabytes: 536
+            source: nvme0n1p1
+            filesystem: vfat
+            target: /boot/efi
+          - capacity_megabytes: 536
+            source: nvme0n1p1
+            filesystem: vfat
+            target: /boot/efi
+          name: SSDPEKKF256G8 NVMe INTEL 256GB
+          size_megabytes: 256000
+        - partitions:
+          - capacity_megabytes: 536
+            source: nvme0n1p1
+            filesystem: vfat
+            target: /boot/efi
+          - capacity_megabytes: 536
+            source: nvme0n1p1
+            filesystem: vfat
+            target: /boot/efi
+          name: SSDPEKKF256G8 NVMe INTEL 256GB
+          size_megabytes: 256000
+        virtualization:
+          type: kvm
+        bios:
+          date: 2023-05-30T00:00:00.000+00:00
+          vendor: Dell Inc.
+          version: 1.25.0
+        kernel:
+          name: linux
+          version: 5.19.0-38-generic
+        release:
+          codename: jammy
+          name: Ubuntu
+          version: "22.04"
+        oem:
+          serial_number: 000123ABCDEF
+          product_name: Precision 3530
+          manufacturer: Dell Inc.
+        motherboard:
+          vendor: Dell Inc.
+          name: 04MPXC
+          serial_number: 000123ABCDEF
+        cpu:
+          max_frequency_megahertz: 4300
+          name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+          mitigations:
+          - cpu_meltdown
+          - mds
+          - spec_store_bypass
+          core_count: 6
+          architecture: x86_64
+          cpu_count: 12
+        dimms:
+        - part_number: M471A2K43CB1-CTD
+          serial_number: 23A2DF34
+          size_gigabytes: 16
+          type: DDR4
+          locator: DIMM A
+          speed_mt_s: 2667
+          form_factor: SODIMM
+          bank_locator: Not Specified
+          manufacturer: 80CE000080CE
+        - part_number: M471A2K43CB1-CTD
+          serial_number: 23A2DF34
+          size_gigabytes: 16
+          type: DDR4
+          locator: DIMM A
+          speed_mt_s: 2667
+          form_factor: SODIMM
+          bank_locator: Not Specified
+          manufacturer: 80CE000080CE
+        network:
+          hostname: lapdooog
+          interfaces:
+          - ipv6_addresses:
+            - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+            - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+            driver:
+              name: e1000e
+              firmware_version: 0.5-4
+              version: 5.19.0-38-generic
+            mac_address: e4:b9:7a:51:c1:10
+            ipv4_addresses:
+            - 173.232.34.243
+            - 173.232.34.243
+          - ipv6_addresses:
+            - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+            - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+            driver:
+              name: e1000e
+              firmware_version: 0.5-4
+              version: 5.19.0-38-generic
+            mac_address: e4:b9:7a:51:c1:10
+            ipv4_addresses:
+            - 173.232.34.243
+            - 173.232.34.243
+      properties:
+        motherboard:
+          $ref: '#/components/schemas/Motherboard'
+        cpu:
+          $ref: '#/components/schemas/CPU'
+        disks:
+          items:
+            $ref: '#/components/schemas/Disks_inner'
+          type: array
+        network:
+          $ref: '#/components/schemas/Network'
+        bios:
+          $ref: '#/components/schemas/BIOS'
+        memory:
+          $ref: '#/components/schemas/Memory'
+        dimms:
+          items:
+            $ref: '#/components/schemas/DIMMs_inner'
+          type: array
+        boot_time:
+          description: ISO 8601 formatted date-time string of the time the device
+            booted
+          example: 2023-03-07T12:04:43.070045+02:00
+          format: date-time
+          type: string
+        kernel:
+          $ref: '#/components/schemas/Kernel'
+        release:
+          $ref: '#/components/schemas/Release'
+        oem:
+          $ref: '#/components/schemas/OEM'
+        virtualization:
+          $ref: '#/components/schemas/Virtualization'
+      type: object
+    Motherboard:
+      example:
+        vendor: Dell Inc.
+        name: 04MPXC
+        serial_number: 000123ABCDEF
+      properties:
+        vendor:
+          example: Dell Inc.
+          type: string
+        name:
+          example: 04MPXC
+          type: string
+        serial_number:
+          example: 000123ABCDEF
+          type: string
+      type: object
+    CPU:
+      example:
+        max_frequency_megahertz: 4300
+        name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+        mitigations:
+        - cpu_meltdown
+        - mds
+        - spec_store_bypass
+        core_count: 6
+        architecture: x86_64
+        cpu_count: 12
+      properties:
+        name:
+          description: Model name
+          example: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+          type: string
+        architecture:
+          example: x86_64
+          type: string
+        core_count:
+          example: 6
+          format: int64
+          type: integer
+        cpu_count:
+          example: 12
+          format: int64
+          type: integer
+        max_frequency_megahertz:
+          description: Max clock frequency in MHz
+          example: 4300
+          format: int64
+          type: integer
+        mitigations:
+          example:
+          - cpu_meltdown
+          - mds
+          - spec_store_bypass
+          items:
+            type: string
+          type: array
+      type: object
+    Disks:
+      items:
+        $ref: '#/components/schemas/Disks_inner'
+      type: array
+    Partition:
+      example:
+        capacity_megabytes: 536
+        source: nvme0n1p1
+        filesystem: vfat
+        target: /boot/efi
+      properties:
+        filesystem:
+          example: vfat
+          type: string
+        capacity_megabytes:
+          description: Amount of megabytes the partition can store
+          example: 536
+          format: int64
+          type: integer
+        source:
+          example: nvme0n1p1
+          type: string
+        target:
+          example: /boot/efi
+          type: string
+      type: object
+    Network:
+      example:
+        hostname: lapdooog
+        interfaces:
+        - ipv6_addresses:
+          - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+          - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+          driver:
+            name: e1000e
+            firmware_version: 0.5-4
+            version: 5.19.0-38-generic
+          mac_address: e4:b9:7a:51:c1:10
+          ipv4_addresses:
+          - 173.232.34.243
+          - 173.232.34.243
+        - ipv6_addresses:
+          - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+          - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+          driver:
+            name: e1000e
+            firmware_version: 0.5-4
+            version: 5.19.0-38-generic
+          mac_address: e4:b9:7a:51:c1:10
+          ipv4_addresses:
+          - 173.232.34.243
+          - 173.232.34.243
+      properties:
+        hostname:
+          example: lapdooog
+          type: string
+        interfaces:
+          items:
+            $ref: '#/components/schemas/NetworkInterface'
+          type: array
+      type: object
+    NetworkInterface:
+      example:
+        ipv6_addresses:
+        - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+        - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+        driver:
+          name: e1000e
+          firmware_version: 0.5-4
+          version: 5.19.0-38-generic
+        mac_address: e4:b9:7a:51:c1:10
+        ipv4_addresses:
+        - 173.232.34.243
+        - 173.232.34.243
+      properties:
+        mac_address:
+          description: "MAC address of the interface formatted in six groups of two\
+            \ hexadecimal digits, separated by colons"
+          example: e4:b9:7a:51:c1:10
+          format: mac
+          type: string
+        driver:
+          $ref: '#/components/schemas/Driver'
+        ipv4_addresses:
+          items:
+            description: IPv4 address of the interface formatted in dotted decimal
+              notation
+            example: 173.232.34.243
+            format: ipv4
+            type: string
+          type: array
+        ipv6_addresses:
+          items:
+            description: IPv6 address of the interface formatted in colon hexadecimal
+              notation
+            example: 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+            format: ipv6
+            type: string
+          type: array
+      type: object
+    Driver:
+      example:
+        name: e1000e
+        firmware_version: 0.5-4
+        version: 5.19.0-38-generic
+      properties:
+        name:
+          example: e1000e
+          type: string
+        version:
+          example: 5.19.0-38-generic
+          type: string
+        firmware_version:
+          example: 0.5-4
+          type: string
+      type: object
+    OEM:
+      example:
+        serial_number: 000123ABCDEF
+        product_name: Precision 3530
+        manufacturer: Dell Inc.
+      properties:
+        manufacturer:
+          example: Dell Inc.
+          type: string
+        product_name:
+          example: Precision 3530
+          type: string
+        serial_number:
+          example: 000123ABCDEF
+          type: string
+      type: object
+    Virtualization:
+      example:
+        type: kvm
+      properties:
+        type:
+          example: kvm
+          type: string
+      type: object
+    BIOS:
+      example:
+        date: 2023-05-30T00:00:00.000+00:00
+        vendor: Dell Inc.
+        version: 1.25.0
+      properties:
+        vendor:
+          example: Dell Inc.
+          type: string
+        version:
+          description: Version as reported by the BIOS
+          example: 1.25.0
+          type: string
+        date:
+          description: Date the BIOS was released in ISO 8601 format
+          example: 2023-05-30
+          format: date
+          type: string
+      type: object
+    Memory:
+      example:
+        memory: 16577
+        swap: 2046
+        swap_devices:
+        - size: 2046
+          name: /dev/dm-2
+        - size: 2046
+          name: /dev/dm-2
+      properties:
+        memory:
+          description: Total memory installed on device in megabytes
+          example: 16577
+          format: int64
+          type: integer
+        swap:
+          description: Total swap memory installed on device in megabytes
+          example: 2046
+          format: int64
+          type: integer
+        swap_devices:
+          items:
+            $ref: '#/components/schemas/SwapDevice'
+          type: array
+      type: object
+    DIMMs:
+      items:
+        $ref: '#/components/schemas/DIMMs_inner'
+      type: array
+    SwapDevice:
+      example:
+        size: 2046
+        name: /dev/dm-2
+      properties:
+        name:
+          example: /dev/dm-2
+          type: string
+        size:
+          example: 2046
+          format: int64
+          type: integer
+      type: object
+    Uptime:
+      example: 1734
+      format: int64
+      type: integer
+    Kernel:
+      example:
+        name: linux
+        version: 5.19.0-38-generic
+      properties:
+        name:
+          example: linux
+          type: string
+        version:
+          example: 5.19.0-38-generic
+          type: string
+      type: object
+    Release:
+      example:
+        codename: jammy
+        name: Ubuntu
+        version: "22.04"
+      properties:
+        name:
+          example: Ubuntu
+          type: string
+        version:
+          example: "22.04"
+          type: string
+        codename:
+          example: jammy
+          type: string
+      type: object
+    _devices_get_401_response:
+      properties:
+        error:
+          type: string
+      type: object
+    _devices_get_200_response:
+      example:
+        metadata:
+          first_page: 1
+          last_page: 3
+          total_records: 23
+          current_page: 1
+          page_size: 10
+        devices:
+        - specs:
+            boot_time: 2023-03-07T12:04:43.070045+02:00
+            memory:
+              memory: 16577
+              swap: 2046
+              swap_devices:
+              - size: 2046
+                name: /dev/dm-2
+              - size: 2046
+                name: /dev/dm-2
+            disks:
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            virtualization:
+              type: kvm
+            bios:
+              date: 2023-05-30T00:00:00.000+00:00
+              vendor: Dell Inc.
+              version: 1.25.0
+            kernel:
+              name: linux
+              version: 5.19.0-38-generic
+            release:
+              codename: jammy
+              name: Ubuntu
+              version: "22.04"
+            oem:
+              serial_number: 000123ABCDEF
+              product_name: Precision 3530
+              manufacturer: Dell Inc.
+            motherboard:
+              vendor: Dell Inc.
+              name: 04MPXC
+              serial_number: 000123ABCDEF
+            cpu:
+              max_frequency_megahertz: 4300
+              name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+              mitigations:
+              - cpu_meltdown
+              - mds
+              - spec_store_bypass
+              core_count: 6
+              architecture: x86_64
+              cpu_count: 12
+            dimms:
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            network:
+              hostname: lapdooog
+              interfaces:
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+          updated_at: 2023-07-07T15:41:49.070045+02:00
+          uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - specs:
+            boot_time: 2023-03-07T12:04:43.070045+02:00
+            memory:
+              memory: 16577
+              swap: 2046
+              swap_devices:
+              - size: 2046
+                name: /dev/dm-2
+              - size: 2046
+                name: /dev/dm-2
+            disks:
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            virtualization:
+              type: kvm
+            bios:
+              date: 2023-05-30T00:00:00.000+00:00
+              vendor: Dell Inc.
+              version: 1.25.0
+            kernel:
+              name: linux
+              version: 5.19.0-38-generic
+            release:
+              codename: jammy
+              name: Ubuntu
+              version: "22.04"
+            oem:
+              serial_number: 000123ABCDEF
+              product_name: Precision 3530
+              manufacturer: Dell Inc.
+            motherboard:
+              vendor: Dell Inc.
+              name: 04MPXC
+              serial_number: 000123ABCDEF
+            cpu:
+              max_frequency_megahertz: 4300
+              name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+              mitigations:
+              - cpu_meltdown
+              - mds
+              - spec_store_bypass
+              core_count: 6
+              architecture: x86_64
+              cpu_count: 12
+            dimms:
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            network:
+              hostname: lapdooog
+              interfaces:
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+          updated_at: 2023-07-07T15:41:49.070045+02:00
+          uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        devices:
+          items:
+            $ref: '#/components/schemas/Device'
+          type: array
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+      type: object
+    _devices_post_201_response:
+      example:
+        device:
+          specs:
+            boot_time: 2023-03-07T12:04:43.070045+02:00
+            memory:
+              memory: 16577
+              swap: 2046
+              swap_devices:
+              - size: 2046
+                name: /dev/dm-2
+              - size: 2046
+                name: /dev/dm-2
+            disks:
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            - partitions:
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              - capacity_megabytes: 536
+                source: nvme0n1p1
+                filesystem: vfat
+                target: /boot/efi
+              name: SSDPEKKF256G8 NVMe INTEL 256GB
+              size_megabytes: 256000
+            virtualization:
+              type: kvm
+            bios:
+              date: 2023-05-30T00:00:00.000+00:00
+              vendor: Dell Inc.
+              version: 1.25.0
+            kernel:
+              name: linux
+              version: 5.19.0-38-generic
+            release:
+              codename: jammy
+              name: Ubuntu
+              version: "22.04"
+            oem:
+              serial_number: 000123ABCDEF
+              product_name: Precision 3530
+              manufacturer: Dell Inc.
+            motherboard:
+              vendor: Dell Inc.
+              name: 04MPXC
+              serial_number: 000123ABCDEF
+            cpu:
+              max_frequency_megahertz: 4300
+              name: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+              mitigations:
+              - cpu_meltdown
+              - mds
+              - spec_store_bypass
+              core_count: 6
+              architecture: x86_64
+              cpu_count: 12
+            dimms:
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            - part_number: M471A2K43CB1-CTD
+              serial_number: 23A2DF34
+              size_gigabytes: 16
+              type: DDR4
+              locator: DIMM A
+              speed_mt_s: 2667
+              form_factor: SODIMM
+              bank_locator: Not Specified
+              manufacturer: 80CE000080CE
+            network:
+              hostname: lapdooog
+              interfaces:
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+              - ipv6_addresses:
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                - 4b5e:cba4:3dbc:98dc:f3bf:ecc5:9b4e:6ec5
+                driver:
+                  name: e1000e
+                  firmware_version: 0.5-4
+                  version: 5.19.0-38-generic
+                mac_address: e4:b9:7a:51:c1:10
+                ipv4_addresses:
+                - 173.232.34.243
+                - 173.232.34.243
+          updated_at: 2023-07-07T15:41:49.070045+02:00
+          uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        device:
+          $ref: '#/components/schemas/Device'
+      type: object
+    ServerInfo_system_info:
+      example:
+        environment: development
+        version: 1.0.0
+      properties:
+        environment:
+          example: development
+          type: string
+        version:
+          example: 1.0.0
+          type: string
+      type: object
+    Disks_inner:
+      example:
+        partitions:
+        - capacity_megabytes: 536
+          source: nvme0n1p1
+          filesystem: vfat
+          target: /boot/efi
+        - capacity_megabytes: 536
+          source: nvme0n1p1
+          filesystem: vfat
+          target: /boot/efi
+        name: SSDPEKKF256G8 NVMe INTEL 256GB
+        size_megabytes: 256000
+      properties:
+        name:
+          description: Model name
+          example: SSDPEKKF256G8 NVMe INTEL 256GB
+          type: string
+        size_megabytes:
+          description: Size in megabytes
+          example: 256000
+          format: int64
+          type: integer
+        partitions:
+          items:
+            $ref: '#/components/schemas/Partition'
+          type: array
+      type: object
+    DIMMs_inner:
+      example:
+        part_number: M471A2K43CB1-CTD
+        serial_number: 23A2DF34
+        size_gigabytes: 16
+        type: DDR4
+        locator: DIMM A
+        speed_mt_s: 2667
+        form_factor: SODIMM
+        bank_locator: Not Specified
+        manufacturer: 80CE000080CE
+      properties:
+        size_gigabytes:
+          description: Size of the DIMM in gigabytes
+          example: 16
+          format: int64
+          type: integer
+        speed_mt_s:
+          description: Speed of the DIMM in megatransfers per second
+          example: 2667
+          format: int64
+          type: integer
+        manufacturer:
+          description: Manufacturer of the DIMM
+          example: 80CE000080CE
+          type: string
+        serial_number:
+          description: Serial number of the DIMM
+          example: 23A2DF34
+          type: string
+        type:
+          description: Type of the DIMM
+          example: DDR4
+          type: string
+        part_number:
+          description: Part number of the DIMM
+          example: M471A2K43CB1-CTD
+          type: string
+        form_factor:
+          description: Form factor of the DIMM
+          example: SODIMM
+          type: string
+        locator:
+          description: Locator of the DIMM
+          example: DIMM A
+          type: string
+        bank_locator:
+          description: Bank locator of the DIMM
+          example: Not Specified
+          type: string
+      type: object
+  securitySchemes:
+    ApiKeyAuth:
+      in: header
+      name: X-API-Key
+      type: apiKey
+    JwtAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
